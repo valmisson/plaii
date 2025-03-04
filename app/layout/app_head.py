@@ -16,7 +16,7 @@ from flet import (
     WindowDragArea,
 )
 
-def pageAppBar(page: Page):
+def appbar(page: Page):
     def on_minimize(_):
         page.window.minimized = True
         page.update()
@@ -30,7 +30,7 @@ def pageAppBar(page: Page):
 
     return WindowDragArea(
         Container(
-            padding=padding.only(left=10),
+            padding=padding.only(left=5),
             content=Row(
                 alignment=MainAxisAlignment.SPACE_BETWEEN,
                 controls=[
