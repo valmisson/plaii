@@ -8,6 +8,7 @@ from flet import (
     IconButton,
     MouseCursor,
     MainAxisAlignment,
+    margin,
     Page,
     padding,
     RoundedRectangleBorder,
@@ -42,10 +43,13 @@ def appbar(page: Page):
                         hover_color=Colors.TRANSPARENT,
                         width=35,
                     ),
-                    Text(
-                        'Plaii',
-                        size=16,
-                        color=Colors.WHITE,
+                    Container(
+                        margin=margin.only(left=95),
+                        content=Text(
+                            'Plaii',
+                            size=16,
+                            color=Colors.WHITE
+                        ),
                     ),
                     Row(
                         spacing=0,

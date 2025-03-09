@@ -13,6 +13,7 @@ from flet import (
 def navbar(on_change):
     return Container(
         padding=padding.symmetric(horizontal=15),
+        margin=margin.only(bottom=10),
         content=Row(
             spacing=10,
             controls=[
@@ -41,10 +42,10 @@ def navbar(on_change):
                     ),
                     tabs=[
                         Tab(
-                            text='Musicas'
+                            text='Músicas'
                         ),
                         Tab(
-                            text='Albuns'
+                            text='Álbuns'
                         )
                     ],
                     on_change=on_change
