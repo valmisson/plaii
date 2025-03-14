@@ -9,13 +9,15 @@ from flet import (
 
 from layout.app_head import appbar
 from layout.app_menu import navbar
+
+from views.settings import settings_view
 from views.musics import musics_view
 
 class AppWindow():
     def __init__(self, page: Page):
         self.page = page
 
-        page.appbar = appbar(page)
+        page.appbar = appbar(page, self.on_settings_view)
         page.bgcolor = Colors.GREY_900
         page.padding = 0
         page.window.frameless = True
@@ -51,6 +53,9 @@ class AppWindow():
     def on_navbar_change(self, event: ControlEvent):
         index_view = int(event.data)
         self.add_view(index_view)
+
+    def on_settings_view(self, _):
+        self.page.open(settings_view(self.page))
 
 if __name__ == '__main__':
     app(target=AppWindow)

@@ -47,7 +47,7 @@ def musics_view(page: Page):
                 list_view.controls.extend([
                     music_item(music) for music in load_musics()
                 ])
-                page.update()
+                list_view.update()
         except Exception as err:
             print(f'Error ao processar o evento de rolagem: {err}')
 

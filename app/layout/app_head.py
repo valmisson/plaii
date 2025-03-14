@@ -9,6 +9,7 @@ from flet import (
     MouseCursor,
     MainAxisAlignment,
     margin,
+    OptionalEventCallable,
     Page,
     padding,
     RoundedRectangleBorder,
@@ -17,7 +18,7 @@ from flet import (
     WindowDragArea,
 )
 
-def appbar(page: Page):
+def appbar(page: Page, on_settings: OptionalEventCallable):
     def on_minimize(_):
         page.window.minimized = True
         page.update()
@@ -42,6 +43,7 @@ def appbar(page: Page):
                         highlight_color=Colors.TRANSPARENT,
                         hover_color=Colors.TRANSPARENT,
                         width=35,
+                        on_click=on_settings
                     ),
                     Container(
                         margin=margin.only(left=95),
