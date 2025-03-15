@@ -12,7 +12,6 @@ from flet import (
     IconButton,
     ListTile,
     ListView,
-    MainAxisAlignment,
     margin,
     OutlinedButton,
     Page,
@@ -21,8 +20,11 @@ from flet import (
     RoundedRectangleBorder,
     Text,
 )
+from shared.models import FoldersModel
 
 def settings_view(page: Page):
+    folders_model = FoldersModel()
+
     def on_folder_picker_result(event: FilePickerResultEvent):
         folder_path = event.path
 
@@ -31,9 +33,21 @@ def settings_view(page: Page):
         ]
 
         if folder_path and not has_path:
-            add_folder_path(folder_path)
+            folders_model.save_folder_path(folder_path)
+
+            folder_paths.controls.append(
+                folder_path_item(folder_path)
+            )
+
+            if len(folder_paths.controls) >= 3:
+                folder_paths.auto_scroll = True
+                folder_paths.height = 180
+
+            folder_paths.update()
 
     def on_remove_folder_path(path):
+        folders_model.remove_folder_path(path)
+
         new_list = [
             ctrl for ctrl in folder_paths.controls if ctrl.key != path
         ]
@@ -41,76 +55,51 @@ def settings_view(page: Page):
         folder_paths.controls = new_list
 
         if len(folder_paths.controls) == 2:
+            folder_paths.auto_scroll = False
             folder_paths.height = None
 
         folder_paths.update()
 
-    def on_save(_):
-        page.close(dialog)
+    def folder_path_item(path: str):
+        return ListTile(
+            key=path,
+            content_padding=0,
+            title=Text(
+                path,
+                color=Colors.WHITE,
+            ),
+            trailing=IconButton(
+                icon=Icons.CLOSE,
+                icon_color=Colors.WHITE70,
+                highlight_color=Colors.with_opacity(
+                    0.2,
+                    Colors.RED_ACCENT_200
+                ),
+                hover_color=Colors.TRANSPARENT,
+                padding=padding.all(0),
+                on_click=lambda _: on_remove_folder_path(path)
+            )
+        )
 
     file_picker = FilePicker(
         on_result=on_folder_picker_result
     )
 
-    def add_folder_path(path: str):
-        folder_paths.controls.append(
-            ListTile(
-                key=path,
-                content_padding=0,
-                title=Text(
-                    path,
-                    color=Colors.WHITE,
-                ),
-                trailing=IconButton(
-                    icon=Icons.CLOSE,
-                    icon_color=Colors.WHITE70,
-                    highlight_color=Colors.with_opacity(
-                        0.2,
-                        Colors.RED_ACCENT_200
-                    ),
-                    hover_color=Colors.TRANSPARENT,
-                    padding=padding.all(0),
-                    on_click=lambda _: on_remove_folder_path(path)
-                )
-            )
-        )
-
-        if len(folder_paths.controls) == 3:
-            folder_paths.height = 180
-
-        folder_paths.update()
-
     folder_paths = ListView(
-        auto_scroll=True
+        controls=[
+            folder_path_item(folder['path']) for folder in folders_model.folder_paths
+        ]
     )
 
     dialog = AlertDialog(
         modal=True,
         bgcolor=Colors.GREY_900,
         shape=RoundedRectangleBorder(radius=8.0),
-        title_padding=padding.only(top=5, right=15, bottom=0, left=25),
-        content_padding=padding.only(top=25, right=25, bottom=35, left=25),
-        title=Row(
-            alignment=MainAxisAlignment.SPACE_BETWEEN,
-            spacing=0,
-            controls=[
-                Text(
-                    'Configurações',
-                    color=Colors.WHITE,
-                    size=16
-                ),
-                IconButton(
-                    icon=Icons.CLOSE,
-                    icon_color=Colors.WHITE70,
-                    highlight_color=Colors.with_opacity(
-                        0.2,
-                        Colors.RED_ACCENT_200
-                    ),
-                    hover_color=Colors.TRANSPARENT,
-                    padding=padding.all(0),
-                    on_click=lambda _: page.close(dialog)
-                )
-            ]
+        content_padding=padding.only(top=35, right=25, bottom=35, left=25),
+        title=Text(
+            'Configurações',
+            color=Colors.WHITE,
+            size=16
         ),
         content=ExpansionTile(
             text_color=Colors.WHITE,
@@ -150,16 +139,19 @@ def settings_view(page: Page):
         ),
         actions=[
             Button(
-                text='Salvar',
+                text='Finalizar',
                 color=Colors.WHITE,
                 bgcolor=Colors.GREEN_500,
                 style=ButtonStyle(
                     padding=padding.symmetric(horizontal=15),
                 ),
-                on_click=on_save
+                on_click=lambda _: page.close(dialog)
             )
         ]
     )
+
+    if len(folder_paths.controls) >= 3:
+        folder_paths.height = 180
 
     page.overlay.append(file_picker)
 

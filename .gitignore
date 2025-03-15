@@ -8,6 +8,7 @@ storage/
 *.egg-info
 .pytest_cache
 .ruff_cache
+*.db
 
 # Virtual environments
 .venv
