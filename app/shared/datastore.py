@@ -8,7 +8,7 @@ class Datastore():
     def connect(self):
         if self.connection is None:
             try:
-                self.connection = connect('datastore.db')
+                self.connection = connect(database='datastore.db', check_same_thread=False)
                 self.connection.row_factory = Row
             except Error as err:
                 print(f'Error ao conectar ao datastore: {err}')
@@ -55,9 +55,14 @@ class Datastore():
         if condition:
             query += f' WHERE {condition}'
 
-        curso = self.execute_query(query)
+        cursor = self.execute_query(query)
 
-        return curso.fetchall()
+        rows = cursor.fetchall()
+
+        columns = [description[0] for description in cursor.description]
+        items = [dict(zip(columns, row)) for row in rows]
+
+        return items
 
     def update(self, data, condition):
         columns = ', '.join([f'{column} = ?' for column in data])

@@ -16,15 +16,11 @@ from flet import (
     TextButton,
     WindowResizeEvent
 )
-from shared.utils import (
-    format_time,
-    get_music_title,
-    get_music_artist,
-    load_music_files,
-    load_music_metadata
-)
+
+from shared.models import MusicsModel
 
 def musics_view(page: Page):
+    musics_model = MusicsModel()
     musics_per_page = 15
     current_page = 0
 
@@ -32,9 +28,16 @@ def musics_view(page: Page):
         start = current_page * musics_per_page
         limit = start + musics_per_page
 
-        musics = load_music_files(start, limit)
+        return musics_model.all_musics[start:limit]
 
-        return musics
+    def update_musics_list():
+        nonlocal current_page
+
+        current_page = 0
+        musics = load_musics()
+
+        list_view.controls = [music_item(music) for music in musics] if musics else [list_empty]
+        list_view.update()
 
     async def on_scroll_change(event: OnScrollEvent):
         nonlocal current_page
@@ -55,9 +58,11 @@ def musics_view(page: Page):
         column.height = event.height - 120
         page.update()
 
-    def music_item(file: str):
-        music = load_music_metadata(file)
+    def on_subscribe_settings(_, status):
+        if status == 'new_folder' or status == 'remove_folder':
+            update_musics_list()
 
+    def music_item(music: dict):
         if music is not None:
             return Column(
                 spacing=0,
@@ -80,17 +85,17 @@ def musics_view(page: Page):
                         shape=RoundedRectangleBorder(4),
                         mouse_cursor=MouseCursor.BASIC,
                         leading=IconButton(
-                            icon=Icons.PLAY_ARROW
+                            icon=Icons.PLAY_ARROW,
                         ),
                         title=Text(
-                            get_music_title(music),
+                            music.get('title'),
                             size=16,
                         ),
                         subtitle=Row(
                             spacing=15,
                             controls=[
                                 Text(
-                                    get_music_artist(music),
+                                    music.get('artist'),
                                     color=Colors.WHITE,
                                     size=14
                                 ),
@@ -103,7 +108,7 @@ def musics_view(page: Page):
                                         ),
                                         TextButton(
                                             content=Text(
-                                                music.album,
+                                                music.get('album'),
                                                 color=Colors.WHITE,
                                                 size=14
                                             ),
@@ -113,11 +118,11 @@ def musics_view(page: Page):
                                             )
                                         )
                                     ]
-                                ) if music.album else Row(),
+                                ),
                             ]
                         ),
                         trailing=Text(
-                            format_time(music.duration),
+                            music.get('duration'),
                             size=14,
                             color=Colors.WHITE
                         ),
@@ -127,29 +132,32 @@ def musics_view(page: Page):
 
     musics = load_musics()
 
+    list_empty = Text(
+        'Lista de musicas está vazia.',
+        color=Colors.WHITE,
+        size=16
+    )
+
     list_view = ListView(
         expand=True,
-        controls=[
-            music_item(music) for music in musics
-        ],
+        controls=[music_item(music) for music in musics] if musics else [list_empty],
         on_scroll=on_scroll_change
     )
 
     column = Column(
+        height=page.height - 250,
         controls=[
             Text(
                 'Todas as Música',
                 color=Colors.WHITE,
                 size=14
             ),
-            Text(
-                'Lista de musicas está vazia.',
-                color=Colors.WHITE,
-                size=16
-            ) if not musics else list_view
+            list_view
         ]
     )
 
     page.on_resized = on_resized_page
+
+    page.pubsub.subscribe_topic('settings', on_subscribe_settings)
 
     return column

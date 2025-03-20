@@ -13,17 +13,57 @@ from flet import (
     ListTile,
     ListView,
     margin,
+    MainAxisAlignment,
     OutlinedButton,
     Page,
     padding,
+    ProgressRing,
     Row,
     RoundedRectangleBorder,
     Text,
 )
-from shared.models import FoldersModel
+
+from shared.utils import load_music_files
+from shared.models import FoldersModel, MusicsModel
 
 def settings_view(page: Page):
     folders_model = FoldersModel()
+    musics_model = MusicsModel()
+    folder_paths_status = []
+    folder_paths_to_add = []
+    folder_paths_to_remove = []
+
+    def save_musics():
+        add_loading_message()
+
+        if len(folder_paths_to_add):
+            musics = load_music_files(folder_paths_to_add)
+            musics_model.save_musics(musics)
+
+        remove_loading_message()
+        folder_paths_to_add.clear()
+
+    def remove_musics():
+        add_loading_message()
+
+        for folder_path in folder_paths_to_remove:
+            musics_model.remove_musics(folder_path)
+
+        remove_loading_message()
+        folder_paths_to_remove.clear()
+
+    def on_finish(_):
+        page.close(dialog)
+
+        for status in folder_paths_status:
+            if status == 'new_folder':
+                save_musics()
+                page.pubsub.send_all_on_topic('settings', 'new_folder')
+            elif status == 'remove_folder':
+                remove_musics()
+                page.pubsub.send_all_on_topic('settings', 'remove_folder')
+
+        folder_paths_status.clear()
 
     def on_folder_picker_result(event: FilePickerResultEvent):
         folder_path = event.path
@@ -43,22 +83,36 @@ def settings_view(page: Page):
                 folder_paths.auto_scroll = True
                 folder_paths.height = 180
 
+            folder_paths_to_add.append(folder_path)
+            folder_paths_status.append('new_folder')
             folder_paths.update()
 
-    def on_remove_folder_path(path):
-        folders_model.remove_folder_path(path)
+    def on_remove_folder_path(folder_path):
+        nonlocal folder_paths_status
 
-        new_list = [
-            ctrl for ctrl in folder_paths.controls if ctrl.key != path
+        folders_model.remove_folder_path(folder_path)
+        folder_paths_to_remove.append(folder_path)
+
+        new_folder_list = [
+            ctrl for ctrl in folder_paths.controls if ctrl.key != folder_path
         ]
 
-        folder_paths.controls = new_list
+        folder_paths.controls = new_folder_list
 
         if len(folder_paths.controls) == 2:
             folder_paths.auto_scroll = False
             folder_paths.height = None
 
+        folder_paths_status.append('remove_folder')
         folder_paths.update()
+
+    def add_loading_message():
+        page.add(loading_message)
+        page.update()
+
+    def remove_loading_message():
+        page.remove(loading_message)
+        page.update()
 
     def folder_path_item(path: str):
         return ListTile(
@@ -87,7 +141,7 @@ def settings_view(page: Page):
 
     folder_paths = ListView(
         controls=[
-            folder_path_item(folder['path']) for folder in folders_model.folder_paths
+            folder_path_item(path) for path in folders_model.folder_paths
         ]
     )
 
@@ -145,9 +199,30 @@ def settings_view(page: Page):
                 style=ButtonStyle(
                     padding=padding.symmetric(horizontal=15),
                 ),
-                on_click=lambda _: page.close(dialog)
+                on_click=on_finish
             )
         ]
+    )
+
+    loading_message = Container(
+        margin=margin.only(top=-55),
+        bgcolor=Colors.GREY_900,
+        content=Row(
+            alignment=MainAxisAlignment.CENTER,
+            controls=[
+                ProgressRing(
+                    width=15,
+                    height=15,
+                    stroke_width=2,
+                    color=Colors.RED_ACCENT_200,
+                ),
+                Text(
+                    'Indexando bibliotecas...',
+                    size=14,
+                    color=Colors.WHITE,
+                )
+            ]
+        )
     )
 
     if len(folder_paths.controls) >= 3:
