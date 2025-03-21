@@ -24,3 +24,4 @@ dev = [
 [tool.ruff]
 target-version = 'py39'
 line-length = 80
+exclude = ["**/__init__.py"]

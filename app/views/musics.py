@@ -1,6 +1,8 @@
 from flet import (
     Column,
     Colors,
+    Container,
+    ControlEvent,
     ButtonStyle,
     Divider,
     Icons,
@@ -17,7 +19,7 @@ from flet import (
     WindowResizeEvent
 )
 
-from shared.models import MusicsModel
+from models import MusicsModel
 
 def musics_view(page: Page):
     musics_model = MusicsModel()
@@ -64,70 +66,87 @@ def musics_view(page: Page):
 
     def music_item(music: dict):
         if music is not None:
-            return Column(
-                spacing=0,
-                controls=[
-                    Divider(
-                        height=1,
-                        thickness=1,
-                        leading_indent=4,
-                        trailing_indent=4,
-                        color=Colors.GREY_800,
-                    ),
-                    ListTile(
-                        dense=True,
-                        selected=False, # Select music playing
-                        toggle_inputs=True,
-                        text_color=Colors.WHITE,
-                        icon_color=Colors.GREY_900,
-                        hover_color=Colors.GREY_800,
-                        selected_color=Colors.RED_ACCENT_200,
-                        shape=RoundedRectangleBorder(4),
-                        mouse_cursor=MouseCursor.BASIC,
-                        leading=IconButton(
-                            icon=Icons.PLAY_ARROW,
+            def on_hover(event: ControlEvent):
+                is_visible = event.data == 'true'
+
+                icon_play.icon_color = Colors.WHITE if is_visible else Colors.GREY_900
+                icon_play.update()
+
+            icon_play = IconButton(
+                icon=Icons.PLAY_ARROW,
+            )
+
+            return Container(
+                on_hover=on_hover,
+                content=Column(
+                    spacing=0,
+                    controls=[
+                        Divider(
+                            height=1,
+                            thickness=1,
+                            leading_indent=4,
+                            trailing_indent=4,
+                            color=Colors.with_opacity(
+                                0.4,
+                                Colors.GREY_800
+                            ),
                         ),
-                        title=Text(
-                            music.get('title'),
-                            size=16,
-                        ),
-                        subtitle=Row(
-                            spacing=15,
-                            controls=[
-                                Text(
-                                    music.get('artist'),
-                                    color=Colors.WHITE,
-                                    size=14
-                                ),
-                                Row(
-                                    controls=[
-                                        Text(
-                                            '-',
-                                            size=14,
-                                            color=Colors.WHITE,
-                                        ),
-                                        TextButton(
-                                            content=Text(
-                                                music.get('album'),
+                        ListTile(
+                            dense=True,
+                            selected=False, # Select music playing
+                            toggle_inputs=True,
+                            text_color=Colors.WHITE,
+                            icon_color=Colors.GREY_900,
+                            hover_color=Colors.with_opacity(
+                                0.4,
+                                Colors.GREY_800
+                            ),
+                            selected_color=Colors.RED_ACCENT_200,
+                            shape=RoundedRectangleBorder(4),
+                            mouse_cursor=MouseCursor.BASIC,
+                            leading=icon_play,
+                            title=Text(
+                                music.get('title'),
+                                size=16,
+                            ),
+                            subtitle=Row(
+                                spacing=15,
+                                controls=[
+                                    Text(
+                                        music.get('artist'),
+                                        color=Colors.WHITE,
+                                        size=14
+                                    ),
+                                    Row(
+                                        controls=[
+                                            Text(
+                                                '-',
+                                                size=14,
                                                 color=Colors.WHITE,
-                                                size=14
                                             ),
-                                            style=ButtonStyle(
-                                                overlay_color=Colors.TRANSPARENT,
-                                                padding=0
+                                            TextButton(
+                                                content=Text(
+                                                    music.get('album'),
+                                                    color=Colors.WHITE,
+                                                    size=14
+                                                ),
+                                                style=ButtonStyle(
+                                                    overlay_color=Colors.TRANSPARENT,
+                                                    padding=0
+                                                )
                                             )
-                                        )
-                                    ]
-                                ),
-                            ]
-                        ),
-                        trailing=Text(
-                            music.get('duration'),
-                            size=14,
-                            color=Colors.WHITE
-                        ),
-                    )
-                ]
+                                        ]
+                                    ),
+                                ]
+                            ),
+                            trailing=Text(
+                                music.get('duration'),
+                                size=14,
+                                color=Colors.WHITE
+                            ),
+                        )
+                    ]
+            )
         )
 
     musics = load_musics()

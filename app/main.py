@@ -7,11 +7,8 @@ from flet import (
     padding
 )
 
-from layout.app_head import appbar
-from layout.app_menu import navbar
-
-from views.settings import settings_view
-from views.musics import musics_view
+from layout import appbar, navbar
+from views import settings_view, musics_view
 
 class AppWindow():
     def __init__(self, page: Page):

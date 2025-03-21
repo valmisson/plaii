@@ -23,8 +23,8 @@ from flet import (
     Text,
 )
 
-from shared.utils import load_music_files
-from shared.models import FoldersModel, MusicsModel
+from shared import load_music_files
+from models import FoldersModel, MusicsModel
 
 def settings_view(page: Page):
     folders_model = FoldersModel()
