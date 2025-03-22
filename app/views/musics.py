@@ -32,15 +32,6 @@ def musics_view(page: Page):
 
         return musics_model.all_musics[start:limit]
 
-    def update_musics_list():
-        nonlocal current_page
-
-        current_page = 0
-        musics = load_musics()
-
-        list_view.controls = [music_item(music) for music in musics] if musics else [list_empty]
-        list_view.update()
-
     async def on_scroll_change(event: OnScrollEvent):
         nonlocal current_page
 
@@ -61,8 +52,15 @@ def musics_view(page: Page):
         page.update()
 
     def on_subscribe_settings(_, status):
-        if status == 'new_folder' or status == 'remove_folder':
-            update_musics_list()
+        if (status == 'new_folder' or status == 'remove_folder'):
+            nonlocal current_page
+
+            current_page = 0
+            musics = load_musics()
+
+            if page.get_control(list_view.uid):
+                list_view.controls = [music_item(music) for music in musics] if musics else [list_empty]
+                list_view.update()
 
     def music_item(music: dict):
         if music is not None:
@@ -164,7 +162,7 @@ def musics_view(page: Page):
     )
 
     column = Column(
-        height=page.height - 250,
+        height=470,
         controls=[
             Text(
                 'Todas as Música',

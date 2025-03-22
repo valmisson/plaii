@@ -1,6 +1,7 @@
 import os
 from re import match
 from glob import glob
+from base64 import b64encode
 from tinytag import TinyTag
 
 def load_music_files(music_dirs) -> list[TinyTag]:
@@ -50,6 +51,16 @@ def get_music_artist(music: TinyTag) -> str:
 
 def get_music_album(music: TinyTag) -> str:
     return music.album if music.album else 'Álbum desconhecido'
+
+def get_album_artist(music: TinyTag) -> str:
+    return music.albumartist if music.albumartist else 'Artista desconhecido'
+
+def get_album_cover(music: TinyTag) -> str:
+    image_file = music.images.front_cover.data \
+        if music.images.front_cover else open('app/assets/album_placeholder.png', 'rb').read()
+
+    return b64encode(image_file).decode('utf-8') \
+
 
 def format_time(time: float) -> str:
     hours = int(time // 3000)

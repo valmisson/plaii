@@ -8,7 +8,7 @@ from flet import (
 )
 
 from layout import appbar, navbar
-from views import settings_view, musics_view
+from views import settings_view, musics_view, albums_view
 
 class AppWindow():
     def __init__(self, page: Page):
@@ -44,6 +44,8 @@ class AppWindow():
 
         if index_view == 0:
             self.views.content = musics_view(self.page)
+        elif index_view == 1:
+            self.views.content = albums_view(self.page)
 
         self.page.update()
 

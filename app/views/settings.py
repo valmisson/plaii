@@ -24,11 +24,12 @@ from flet import (
 )
 
 from shared import load_music_files
-from models import FoldersModel, MusicsModel
+from models import FoldersModel, MusicsModel, AlbumsModel
 
 def settings_view(page: Page):
     folders_model = FoldersModel()
     musics_model = MusicsModel()
+    albums_model = AlbumsModel()
     folder_paths_status = []
     folder_paths_to_add = []
     folder_paths_to_remove = []
@@ -39,6 +40,7 @@ def settings_view(page: Page):
         if len(folder_paths_to_add):
             musics = load_music_files(folder_paths_to_add)
             musics_model.save_musics(musics)
+            albums_model.save_albums(musics)
 
         remove_loading_message()
         folder_paths_to_add.clear()
@@ -48,6 +50,7 @@ def settings_view(page: Page):
 
         for folder_path in folder_paths_to_remove:
             musics_model.remove_musics(folder_path)
+            albums_model.remove_albums(folder_path)
 
         remove_loading_message()
         folder_paths_to_remove.clear()
