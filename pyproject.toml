@@ -19,6 +19,7 @@ repository = "https://github.com/valmisson/plaii"
 flet = {version = "^0.27.6", extras = ["all"]}
 pytest = "^8.3.5"
 ruff = "^0.11.2"
+flet-audio = "^0.1.0"
 
 [tool.poetry]
 package-mode = false

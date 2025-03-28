@@ -23,7 +23,7 @@ def load_music_files(music_dirs) -> list[TinyTag]:
                         'title': get_music_title(music_metadata),
                         'artist': get_music_artist(music_metadata),
                         'album': get_music_album(music_metadata),
-                        'duration': format_time(music_metadata.duration),
+                        'duration': format_time(music_metadata.duration, is_seconds=True),
                         'filename': music_metadata.filename,
                         'parent_folder': dir
                     })
@@ -62,10 +62,15 @@ def get_album_cover(music: TinyTag) -> str:
     return b64encode(image_file).decode('utf-8') \
 
 
-def format_time(time: float) -> str:
-    hours = int(time // 3000)
-    minutes = int((time % 3600) // 60)
-    seconds = int(time % 60)
+def format_time(time: int, is_seconds=False) -> str:
+    current_time = int(time // 1000)
+
+    if is_seconds:
+        current_time = int(time)
+
+    hours = current_time // 3000
+    minutes = (current_time % 3600) // 60
+    seconds = current_time % 60
 
     if hours > 0:
         return f'{hours}:{minutes:02d}:{seconds:02d}'

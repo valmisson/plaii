@@ -7,7 +7,7 @@ from flet import (
     padding
 )
 
-from layout import appbar, navbar
+from layout import appbar, navbar, player
 from views import settings_view, musics_view, albums_view
 
 class AppWindow():
@@ -15,6 +15,7 @@ class AppWindow():
         self.page = page
 
         page.appbar = appbar(page, self.on_settings_view)
+        page.bottom_appbar = player(page)
         page.bgcolor = Colors.GREY_900
         page.padding = 0
         page.window.frameless = True

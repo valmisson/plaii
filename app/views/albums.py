@@ -71,7 +71,7 @@ def albums_view(page: Page):
             visible=False,
             icon=Icons.PLAY_ARROW,
             icon_color=Colors.GREY_900,
-            bgcolor=Colors.RED_ACCENT_200
+            bgcolor=Colors.WHITE
         )
 
         container = Container(
