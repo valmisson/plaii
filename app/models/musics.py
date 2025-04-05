@@ -30,6 +30,15 @@ class MusicsModel():
 
         return item
 
+    def get_album_musics(self, album):
+        list = self.datastore.list(
+            condition=f'album = "{album}"'
+        )
+
+        self.datastore.disconnect()
+
+        return sort_by(list, key='title')
+
     def save_musics(self, musics: list[dict]):
         for music in musics:
             music_filename = music.get('filename')

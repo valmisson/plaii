@@ -19,9 +19,23 @@ class Datastore():
             self.connection.close()
             self.connection = None
 
+    def is_connected(self):
+        """Check if database connection is active"""
+        if self.connection is None:
+            return False
+        try:
+            # Test if connection is still valid by executing a simple query
+            self.connection.cursor().execute('SELECT 1')
+            return True
+        except Error:
+            self.connection = None
+            return False
+
     def execute_query(self, query: str, params=None):
         try:
-            self.connect()
+            # Ensure we have a valid connection
+            if not self.is_connected():
+                self.connect()
 
             cursor = self.connection.cursor()
             cursor.execute(query, params or [])
@@ -30,7 +44,8 @@ class Datastore():
             return cursor
         except Error as err:
             print(f'Erro ao executar a query: {err}')
-            self.connection.rollback()
+            if self.connection:
+                self.connection.rollback()
             raise
 
     def create_table(self, columns):
@@ -65,12 +80,13 @@ class Datastore():
         return items
 
     def update(self, data, condition):
-        columns = ', '.join([f'{column} = ?' for column in data])
+        columns = ', '.join([f'{column} = ?' for column in data.keys()])
 
-        self.execute_query(
-            f'UPDATE {self.table} SET {columns} WHERE {condition}',
-            tuple(data.values())
-        )
+        values = list(data.values())
+
+        query = f'UPDATE {self.table} SET {columns} WHERE {condition}'
+
+        self.execute_query(query, values)
 
     def delete(self, condition):
         self.execute_query(f'DELETE FROM {self.table} WHERE {condition}')

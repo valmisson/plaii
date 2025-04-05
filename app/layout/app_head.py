@@ -18,7 +18,11 @@ from flet import (
     WindowDragArea,
 )
 
+from models import PlayerModel
+
 def appbar(page: Page, on_settings: OptionalEventCallable):
+    player_model = PlayerModel()
+
     def on_minimize(_):
         page.window.minimized = True
         page.update()
@@ -28,6 +32,15 @@ def appbar(page: Page, on_settings: OptionalEventCallable):
         page.update()
 
     def on_close(_):
+        is_playing = player_model.get_info('is_playing')
+
+        if is_playing == 'True':
+            player_model.update_info({
+                'is_playing': 'False',
+                'is_pause': 'True'
+            })
+            player_model.datastore.disconnect()
+
         page.window.close()
 
     return WindowDragArea(

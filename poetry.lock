@@ -293,6 +293,21 @@ desktop = ["flet-desktop (==0.27.6) ; platform_system == \"Darwin\" or platform_
 web = ["flet-web (==0.27.6)"]
 
 [[package]]
+name = "flet-audio"
+version = "0.1.0"
+description = "Audio control for Flet"
+optional = false
+python-versions = ">=3.8"
+groups = ["dev"]
+files = [
+    {file = "flet_audio-0.1.0-py3-none-any.whl", hash = "sha256:717e1da0fc1cfc941e9b715abb8e93e6f8cccad0fe48dc90c26dd4ce70bed182"},
+    {file = "flet_audio-0.1.0.tar.gz", hash = "sha256:675ed25042c8dd011aad6ae224939e05fd3c1cd7bca5050cdb003e5aec3db83c"},
+]
+
+[package.dependencies]
+flet = ">=0.25.1"
+
+[[package]]
 name = "flet-cli"
 version = "0.27.6"
 description = "Flet CLI"
@@ -1501,4 +1516,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "e6d33845f72f2d66a93a661c0406548b052a5397f62ba9169b457d2b2f896272"
+content-hash = "7e9b9492e62b7076bbf7f85430a4e2abfac7c63e2776eb70982c2120eb2a84ca"

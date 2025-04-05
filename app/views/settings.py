@@ -20,6 +20,7 @@ from flet import (
     ProgressRing,
     Row,
     RoundedRectangleBorder,
+    Stack,
     Text,
 )
 
@@ -64,9 +65,11 @@ def settings_view(page: Page):
                 page.pubsub.send_all_on_topic('settings', 'new_folder')
             elif status == 'remove_folder':
                 remove_musics()
+                page.pubsub.send_all_on_topic('folder_removed', None)
                 page.pubsub.send_all_on_topic('settings', 'remove_folder')
 
         folder_paths_status.clear()
+
 
     def on_folder_picker_result(event: FilePickerResultEvent):
         folder_path = event.path
@@ -114,8 +117,9 @@ def settings_view(page: Page):
         page.update()
 
     def remove_loading_message():
-        page.remove(loading_message)
-        page.update()
+        if loading_message in page.controls:
+            page.remove(loading_message)
+            page.update()
 
     def folder_path_item(path: str):
         return ListTile(
@@ -207,30 +211,36 @@ def settings_view(page: Page):
         ]
     )
 
-    loading_message = Container(
-        margin=margin.only(top=-55),
-        bgcolor=Colors.GREY_900,
-        content=Row(
-            alignment=MainAxisAlignment.CENTER,
-            controls=[
-                ProgressRing(
-                    width=15,
-                    height=15,
-                    stroke_width=2,
-                    color=Colors.RED_ACCENT_200,
-                ),
-                Text(
-                    'Indexando bibliotecas...',
-                    size=14,
-                    color=Colors.WHITE,
+    loading_message = Stack(
+        controls=[
+            Container(
+                top=-170,
+                width=page.width,
+                bgcolor=Colors.GREY_900,
+                padding=padding.symmetric(vertical=10),
+                content=Row(
+                    alignment=MainAxisAlignment.CENTER,
+                    controls=[
+                        ProgressRing(
+                            width=15,
+                            height=15,
+                            stroke_width=2,
+                            color=Colors.RED_ACCENT_200,
+                        ),
+                        Text(
+                            'Indexando bibliotecas...',
+                            size=14,
+                            color=Colors.WHITE,
+                        )
+                    ]
                 )
-            ]
-        )
+            )
+        ]
     )
 
     if len(folder_paths.controls) >= 3:
         folder_paths.height = 180
 
-    page.overlay.append(file_picker)
+    page.add(file_picker)
 
     return dialog
