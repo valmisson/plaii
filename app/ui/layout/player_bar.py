@@ -485,6 +485,10 @@ class PlayerBar(Container):
             if player_state.playlist_source == "album":
                 return
 
+            # Skip if the playlist is empty
+            if not player_state.playlist:
+                return
+
             # Get fresh music data directly from database
             all_musics = self.music_repository.get_all_music(use_cache=False)
             if not all_musics:

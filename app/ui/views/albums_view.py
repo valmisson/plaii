@@ -2,6 +2,7 @@
 Albums view component
 """
 from flet import (
+    ButtonStyle,
     Colors,
     Column,
     Container,
@@ -13,6 +14,9 @@ from flet import (
     Image,
     padding,
     Page,
+    PopupMenuButton,
+    PopupMenuItem,
+    Row,
     Stack,
     Text,
     TextOverflow,
@@ -134,8 +138,71 @@ class AlbumsView(Container):
             bgcolor=AppColors.WHITE,
             right=10,
             bottom=10,
+            tooltip="Pausar" if is_playing else "Reproduzir",
             visible=is_playing and is_current_album,
             on_click=lambda _: self.on_play_album(album)
+        )
+
+        # Create context menu button
+        context_menu = PopupMenuButton(
+            left=0,
+            bottom=5,
+            visible=False,
+            icon=Icons.MORE_VERT,
+            bgcolor=AppColors.GREY,
+            icon_color=AppColors.WHITE,
+            shadow_color=AppColors.GREY_LIGHT_200,
+            icon_size=20,
+            tooltip="Mais opções",
+            style=ButtonStyle(
+                overlay_color=AppColors.TRANSPARENT,
+            ),
+            items=[
+                PopupMenuItem(
+                    content=Row(
+                        controls=[
+                            Icon(
+                                Icons.PLAY_ARROW,
+                                color=AppColors.WHITE
+                            ),
+                            Text(
+                                "Reproduzir",
+                                color=AppColors.WHITE
+                            )
+                        ]
+                    ),
+                    on_click=lambda _: self.on_play_album(album, resume=False)
+                ),
+                PopupMenuItem(
+                    content=Row(
+                        controls=[
+                            Icon(
+                                Icons.QUEUE_MUSIC,
+                                color=AppColors.WHITE
+                            ),
+                            Text(
+                                "Adicionar à fila",
+                                color=AppColors.WHITE
+                            )
+                        ]
+                    ),
+                    on_click=lambda _: self.on_add_to_queue(album)
+                ),
+                PopupMenuItem(
+                    content=Row(
+                        controls=[
+                            Icon(
+                                Icons.ALBUM,
+                                color=AppColors.WHITE
+                            ),
+                            Text(
+                                "Mostrar o álbum",
+                                color=AppColors.WHITE
+                            )
+                        ]
+                    ),
+                )
+            ],
         )
 
         card = Container(
@@ -153,7 +220,8 @@ class AlbumsView(Container):
                                 fit="cover",
                                 border_radius=6,
                             ),
-                            play_button
+                            play_button,
+                            context_menu
                         ]
                     ),
                     Column(
@@ -178,7 +246,7 @@ class AlbumsView(Container):
                     )
                 ]
             ),
-            on_hover=lambda event: self.on_album_card_hover(event, album.name, play_button, card),
+            on_hover=lambda event: self.on_album_card_hover(event, album.name, play_button, context_menu, card),
         )
 
         return card
@@ -226,6 +294,7 @@ class AlbumsView(Container):
                     play_button = prev_album_card.content.controls[0].controls[1]
                     play_button.visible = False
                     play_button.icon = Icons.PLAY_ARROW
+                    play_button.tooltip = "Reproduzir"
                     play_button.update()
                 except (IndexError, AttributeError):
                     pass
@@ -239,6 +308,7 @@ class AlbumsView(Container):
                 try:
                     play_button = curr_album_card.content.controls[0].controls[1]
                     play_button.icon = Icons.PAUSE if is_playing else Icons.PLAY_ARROW
+                    play_button.tooltip = "Pausar" if is_playing else "Reproduzir"
                     play_button.visible = True if self._is_hovered else is_playing
                     play_button.update()
                 except (IndexError, AttributeError):
@@ -312,7 +382,7 @@ class AlbumsView(Container):
         grid_view = self.content
         grid_view.controls = [self._create_album_card(album) for album in self._load_albums()]
 
-    def on_play_album(self, album: Album):
+    def on_play_album(self, album: Album, resume=True):
         if not album or not album.tracks:
             return
 
@@ -320,10 +390,10 @@ class AlbumsView(Container):
         is_current_album = player_state.current_album == album.name
 
         # Pause if already playing
-        if is_current_album and player_state.is_playing:
+        if is_current_album and player_state.is_playing and resume:
             self.audio_service.pause()
         # Resume if paused
-        elif is_current_album and player_state.is_paused:
+        elif is_current_album and player_state.is_paused and resume:
             self.audio_service.resume()
         # Play if not already playing
         else:
@@ -341,18 +411,58 @@ class AlbumsView(Container):
             self.audio_service.load_music(track_to_play)
             self.audio_service.play()
 
-    def on_album_card_hover(self, event, album_name: str, play_button: IconButton, card: Container):
+    def on_add_to_queue(self, album: Album):
+        """
+        Add all album tracks to the playback queue
+
+        Args:
+            album (Album): Album to be added to the queue
+        """
+        # Ignore empty albums
+        if not album or not album.tracks:
+            return
+
+        # Get player state and convert album tracks to dict format
+        tracks_to_add = [t.to_dict() for t in album.tracks]
+        player_state = self.audio_service.player_repository.get_player_state()
+
+        # If player is inactive, play immediately
+        if not player_state.is_playing and not player_state.playlist:
+            # Start playing this album
+            player_state.playlist = tracks_to_add
+            player_state.playlist_source = "album"
+            self.audio_service.player_repository.update_player_state(player_state)
+            self.audio_service.load_music(album.tracks[0])
+            self.audio_service.play()
+            return
+
+        # Otherwise, just append to the existing queue
+        player_state.playlist.extend(tracks_to_add)
+        self.audio_service.player_repository.update_player_state(player_state)
+        self.page.update()
+
+    def on_album_card_hover(self, event, album_name: str, play_button: IconButton, context_menu: PopupMenuButton, card: Container):
         """
         Handle hover event on album card
 
         Args:
-            play_button (IconButton): The play button for the album
+            event: The hover event
+            album_name (str): The name of the album
+            play_button (IconButton): The play button
+            context_menu (PopupMenuButton): The context menu button
+            card (Container): The album card container
         """
         # Update the play button visibility
         is_visible = event.data == "true"
         is_current_album = self._current_album_playing == album_name
-        if not is_current_album:
-            play_button.visible = is_visible
+
+        play_button.visible = is_visible
+
+        if is_current_album and self.audio_service.is_playing():
+            play_button.visible = True
+
+        # Update the context menu visibility
+        context_menu.visible = is_visible
 
         # Update the card background color
         card.bgcolor = (
