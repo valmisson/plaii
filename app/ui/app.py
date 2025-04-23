@@ -11,6 +11,7 @@ from flet import (
 
 from app.config.colors import AppColors
 from app.config.settings import DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT
+from app.data.repositories import AppRepository
 from app.services.audio_service import AudioService
 from app.services.notify_service import NotifyService
 from app.ui.layout.app_bar import AppBar
@@ -32,6 +33,9 @@ class AppWindow:
             page (Page): The Flet page object
         """
         self.page = page
+        self.app_repository = AppRepository()
+        self.app_state = self.app_repository.get_app_state()
+
         self.initialize_window()
         self.initialize_services()
         self.initialize_ui()
@@ -91,7 +95,7 @@ class AppWindow:
         )
 
         # Start with music view
-        self.add_view(0)
+        self.add_view(self.app_state.current_view)
 
         self.page.update()
 
@@ -126,6 +130,10 @@ class AppWindow:
         """
         index_view = int(event.data)
         self.add_view(index_view)
+
+        app_state = self.app_repository.get_app_state()
+        app_state.current_view = index_view
+        self.app_repository.update_app_state(app_state)
 
     def on_settings_view(self, _: ControlEvent):
         """

@@ -14,6 +14,7 @@ from flet import (
 from typing import Callable
 
 from app.config.colors import AppColors
+from app.data.repositories import AppRepository
 
 
 class NavigationBar(Container):
@@ -27,6 +28,9 @@ class NavigationBar(Container):
             on_change (Callable): Callback function when navigation changes
         """
         super().__init__()
+
+        self.app_repository = AppRepository()
+        self.app_state = self.app_repository.get_app_state()
 
         self.on_tab_change = on_change
 
@@ -57,7 +61,7 @@ class NavigationBar(Container):
     def _create_tabs(self):
         """Create the navigation tabs"""
         return Tabs(
-            selected_index=0,
+            selected_index=self.app_state.current_view,
             divider_color=AppColors.TRANSPARENT,
             indicator_color=AppColors.PRIMARY,
             indicator_tab_size=False,
