@@ -1,6 +1,5 @@
 from app.core.models import App
 from app.data.datastore import Datastore
-from app.data.cache_manager import CacheManager
 
 class AppRepository:
     """Repository for app state data"""

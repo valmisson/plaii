@@ -3,7 +3,7 @@ Thread-safe cache manager for repository data
 """
 import time
 import threading
-from typing import Any, Dict, Optional, TypeVar, Generic, Callable
+from typing import Optional, TypeVar, Generic, Callable
 
 T = TypeVar('T')
 
