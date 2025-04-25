@@ -4,6 +4,7 @@ from flet import (
     Page,
 )
 
+from app.config.settings import DEFAULT_PLAYER_HEIGHT
 from app.config.colors import AppColors
 from app.services.audio_service import AudioService
 from app.services.notify_service import NotifyService
@@ -27,7 +28,7 @@ class BottomBar(BottomAppBar):
         self.notify_service = notify_service
 
         # Create the view
-        self.height = 120
+        self.height = DEFAULT_PLAYER_HEIGHT
         self.padding = 0
         self.bgcolor = AppColors.TRANSPARENT
         self.content = self._build()

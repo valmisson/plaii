@@ -18,9 +18,9 @@ from flet import (
 )
 from typing import Callable
 
-from app.services.audio_service import AudioService
-from app.config.colors import AppColors
 from app.config.settings import APP_NAME
+from app.config.colors import AppColors
+from app.services.audio_service import AudioService
 
 
 class AppBar(Container):

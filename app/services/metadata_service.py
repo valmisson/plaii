@@ -7,7 +7,11 @@ from concurrent.futures import ThreadPoolExecutor
 from tinytag import TinyTag
 from typing import Dict, List, Any, Callable, Optional
 
-from app.config.settings import DEFAULT_DURATION_TEXT, DEFAULT_PLACEHOLDER_IMAGE, DEFAULT_BATCH_SIZE
+from app.config.settings import (
+    DEFAULT_DURATION_TEXT,
+    DEFAULT_PLACEHOLDER_IMAGE,
+    DEFAULT_BATCH_SIZE
+)
 from app.core.models import Music
 from app.utils.time_format import format_time
 

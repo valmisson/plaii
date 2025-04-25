@@ -9,8 +9,11 @@ from flet import (
     Theme,
 )
 
+from app.config.settings import (
+    DEFAULT_WINDOW_WIDTH,
+    DEFAULT_WINDOW_HEIGHT
+)
 from app.config.colors import AppColors
-from app.config.settings import DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT
 from app.data.repositories import AppRepository
 from app.services.audio_service import AudioService
 from app.services.notify_service import NotifyService

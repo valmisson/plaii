@@ -23,6 +23,7 @@ from flet_audio import AudioState
 from typing import List
 from time import time
 
+from app.config.settings import DEFAULT_VIEW_HEIGHT
 from app.config.colors import AppColors
 from app.core.models import Music
 from app.data.repositories import MusicRepository, PlayerRepository
@@ -91,7 +92,7 @@ class MusicsView(Container):
     def _build_music_list(self):
         """Build the music tracks table"""
         return Column(
-            height=340,
+            height=DEFAULT_VIEW_HEIGHT,
             spacing=10,
             controls=[
                 Container(

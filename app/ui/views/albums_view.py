@@ -27,9 +27,12 @@ from random import choice
 from typing import List
 from time import time
 
+from app.config.settings import (
+    DEFAULT_VIEW_HEIGHT,
+    DEFAULT_PLACEHOLDER_IMAGE
+)
 from app.core.models import Album
 from app.config.colors import AppColors
-from app.config.settings import DEFAULT_PLACEHOLDER_IMAGE
 from app.data.repositories import AlbumRepository, PlayerRepository
 from app.services.audio_service import AudioService
 from app.services.metadata_service import MetadataService
@@ -57,7 +60,7 @@ class AlbumsView(Container):
         # State
         self.albums: List[Album] = []
         self._player_state = self.player_repository.get_player_state()
-        self._albums_per_page = 20
+        self._albums_per_page = 24
         self._current_page = 0
         self._last_scroll_time = 0
         self._is_loading_more = False
@@ -94,11 +97,11 @@ class AlbumsView(Container):
     def _create_albums_grid(self):
         """Build the albums grid view"""
         return GridView(
-            height=340,
-            runs_count=5,
+            height=DEFAULT_VIEW_HEIGHT,
+            runs_count=6,
             spacing=10,
             run_spacing=2,
-            child_aspect_ratio=0.687,
+            child_aspect_ratio=0.698,
             padding=padding.symmetric(horizontal=10),
             controls=[self._create_album_card(album) for album in self._load_albums()],
             on_scroll=self.on_album_grid_scroll

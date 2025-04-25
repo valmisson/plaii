@@ -20,8 +20,12 @@ from flet import (
 )
 from flet_audio import AudioState
 
+from app.config.settings import (
+    DEFAULT_PLACEHOLDER_IMAGE,
+    DEFAULT_DURATION_TEXT,
+    DEFAULT_PLAYER_HEIGHT
+)
 from app.config.colors import AppColors
-from app.config.settings import DEFAULT_PLACEHOLDER_IMAGE, DEFAULT_DURATION_TEXT
 from app.core.models import Music
 from app.data.repositories import PlayerRepository, MusicRepository
 from app.services.audio_service import AudioService
@@ -67,7 +71,7 @@ class PlayerBar(Container):
         self._initialize_music_info()
 
         # Setup the BottomAppBar properties and content
-        self.height = 120
+        self.height = DEFAULT_PLAYER_HEIGHT
         self.bgcolor = AppColors.BLACK_DARK_100
         self.padding = padding.symmetric(vertical=10, horizontal=15)
         self.content = self._build()
