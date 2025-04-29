@@ -2,6 +2,7 @@
 Metadata service for handling music file metadata
 """
 import os
+import re
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from tinytag import TinyTag
@@ -14,6 +15,7 @@ from app.config.settings import (
 )
 from app.core.models import Music
 from app.utils.time_format import format_time
+from app.utils.image_utils import image_to_base64
 
 
 class MetadataService:
@@ -37,12 +39,18 @@ class MetadataService:
             title = (f'{tag.track}. {tag.title}' if tag.track else tag.title) \
                 if tag.title else os.path.basename(file).split('.')[0]
 
+            # Extract year from tag if available
+            tag_year = None
+            if tag.year:
+                match = re.search(r'\b\d{4}\b', str(tag.year))
+                tag_year = match.group(0) if match else tag.year
+
             metadata = {
                 'title': title,
                 'artist': tag.artist or 'Artista desconhecido',
                 'album': tag.album or 'Álbum desconhecido',
                 'album_artist': tag.albumartist or 'Artista desconhecido',
-                'year': tag.year,
+                'year': tag_year,
                 'track': tag.track,
                 'genre': tag.genre,
                 'duration': format_time(tag.duration, is_in_seconds=True),
@@ -64,6 +72,26 @@ class MetadataService:
                 'duration': DEFAULT_DURATION_TEXT,
                 'filename': file,
             }
+
+    @staticmethod
+    def load_music_cover(file: str) -> bytes:
+        """
+        Load album cover image from a music file
+
+        Args:
+            file (str): Path to the music file
+
+        Returns:
+            bytes: Album cover image data
+        """
+        try:
+            tag = TinyTag.get(file, image=True)
+            image = tag.images.front_cover.data if tag.images.front_cover else open(DEFAULT_PLACEHOLDER_IMAGE, 'rb').read()
+            return image_to_base64(image)
+        except Exception as err:
+            print(f"Error loading cover for {file}: {err}")
+            image = open(DEFAULT_PLACEHOLDER_IMAGE, 'rb').read()
+            return image_to_base64(image)
 
     @staticmethod
     async def scan_folder_async(

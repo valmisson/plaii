@@ -4,8 +4,8 @@ from flet import (
     Page,
 )
 
-from app.config.settings import DEFAULT_PLAYER_HEIGHT
 from app.config.colors import AppColors
+from app.config.settings import DEFAULT_PLAYER_HEIGHT
 from app.services.audio_service import AudioService
 from app.services.notify_service import NotifyService
 from app.ui.layout.player_bar import PlayerBar

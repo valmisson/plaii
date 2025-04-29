@@ -14,6 +14,7 @@ class Album:
     artist: str
     cover: Optional[str] = None
     year: Optional[int] = None
+    genre: Optional[str] = None
     tracks: List[Music] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -23,6 +24,7 @@ class Album:
             "artist": self.artist,
             "cover": self.cover,
             "year": self.year,
+            "genre": self.genre,
             "tracks": [track.to_dict() for track in self.tracks]
         }
 
@@ -35,5 +37,6 @@ class Album:
             artist=data.get("artist", "Artista desconhecido"),
             cover=data.get("cover"),
             year=data.get("year"),
+            genre=data.get("genre"),
             tracks=tracks
         )

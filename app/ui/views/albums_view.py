@@ -12,6 +12,7 @@ from flet import (
     Icons,
     IconButton,
     Image,
+    OnScrollEvent,
     padding,
     Page,
     PopupMenuButton,
@@ -20,23 +21,17 @@ from flet import (
     Stack,
     Text,
     TextOverflow,
-    OnScrollEvent,
 )
 from flet_audio import AudioState
 from random import choice
-from typing import List
 from time import time
+from typing import List
 
-from app.config.settings import (
-    DEFAULT_VIEW_HEIGHT,
-    DEFAULT_PLACEHOLDER_IMAGE
-)
-from app.core.models import Album
 from app.config.colors import AppColors
+from app.config.settings import DEFAULT_VIEW_HEIGHT
+from app.core.models import Album
 from app.data.repositories import AlbumRepository, PlayerRepository
 from app.services.audio_service import AudioService
-from app.services.metadata_service import MetadataService
-from app.utils.image_utils import get_album_cover
 
 
 class AlbumsView(Container):
@@ -71,8 +66,8 @@ class AlbumsView(Container):
         self._current_album_playing = None
 
         # Create the view
-        self.padding = padding.only(top=20)
         self.expand = True
+        self.padding = padding.only(top=20)
         self.content = self._build()
 
         # Subscribe to events
@@ -117,22 +112,8 @@ class AlbumsView(Container):
         Returns:
             Card: The album card component
         """
-        # Try to get album cover from first track
-        album_cover = DEFAULT_PLACEHOLDER_IMAGE
         is_playing = self.audio_service.is_playing()
         is_current_album = self._player_state.current_album == album.name
-
-        if album.tracks:
-            try:
-                metadata = MetadataService.load_music_metadata(
-                    file=album.tracks[0].filename,
-                    with_image=True
-                )
-                cover_data = get_album_cover(metadata)
-                if cover_data:
-                    album_cover = cover_data
-            except Exception as err:
-                print(f"Error loading album cover: {err}")
 
         # Create play button
         play_button = IconButton(
@@ -218,8 +199,7 @@ class AlbumsView(Container):
                     Stack(
                         controls=[
                             Image(
-                                src=DEFAULT_PLACEHOLDER_IMAGE,
-                                src_base64=album_cover if album_cover != DEFAULT_PLACEHOLDER_IMAGE else None,
+                                src_base64=album.cover,
                                 fit="cover",
                                 border_radius=6,
                             ),
@@ -250,6 +230,7 @@ class AlbumsView(Container):
                 ]
             ),
             on_hover=lambda event: self.on_album_card_hover(event, album.name, play_button, context_menu, card),
+            on_click=lambda _: self.on_goto_album(album),
         )
 
         return card
@@ -257,7 +238,7 @@ class AlbumsView(Container):
     def _create_empty_state(self):
         """Build the empty state message when no albums are available"""
         return Container(
-            padding=padding.symmetric(vertical=60),
+            padding=padding.symmetric(vertical=150),
             content=Column(
                 horizontal_alignment=CrossAxisAlignment.CENTER,
                 controls=[
@@ -275,6 +256,22 @@ class AlbumsView(Container):
                 ]
             )
         )
+
+    def _safe_update(self, control=None):
+        """
+        Safely update a control or self, catching any AssertionErrors
+
+        Args:
+            control: The control to update, if None updates self
+        """
+        try:
+            if control is None:
+                self.update()
+            else:
+                control.update()
+        except AssertionError:
+            # Skip update if component is not fully initialized
+            pass
 
     def _update_album_play_button(self, current_album: str, is_playing=False):
         """
@@ -298,7 +295,7 @@ class AlbumsView(Container):
                     play_button.visible = False
                     play_button.icon = Icons.PLAY_ARROW
                     play_button.tooltip = "Reproduzir"
-                    play_button.update()
+                    self._safe_update(play_button)
                 except (IndexError, AttributeError):
                     pass
 
@@ -313,7 +310,7 @@ class AlbumsView(Container):
                     play_button.icon = Icons.PAUSE if is_playing else Icons.PLAY_ARROW
                     play_button.tooltip = "Pausar" if is_playing else "Reproduzir"
                     play_button.visible = True if self._is_hovered else is_playing
-                    play_button.update()
+                    self._safe_update(play_button)
                 except (IndexError, AttributeError):
                     pass
 
@@ -442,7 +439,19 @@ class AlbumsView(Container):
         # Otherwise, just append to the existing queue
         player_state.playlist.extend(tracks_to_add)
         self.audio_service.player_repository.update_player_state(player_state)
-        self.page.update()
+        self._safe_update(self.page)
+
+    def on_goto_album(self, album: Album):
+        """
+        Navigate to the album details page
+
+        Args:
+            album (Album): The album to navigate to
+        """
+        self.page.pubsub.send_all_on_topic(
+            'navigation:album',
+            { 'index_view': 2, 'album': album }
+        )
 
     def on_album_card_hover(self, event, album_name: str, play_button: IconButton, context_menu: PopupMenuButton, card: Container):
         """
@@ -474,8 +483,8 @@ class AlbumsView(Container):
             else AppColors.BLACK
         )
 
-        self.update()
         self._is_hovered = is_visible
+        self._safe_update()
 
     def on_album_grid_scroll(self, event: OnScrollEvent):
         """
@@ -529,7 +538,7 @@ class AlbumsView(Container):
 
             # Batch update the Row with all new items at once
             albums_grid.controls.extend(new_items)
-            albums_grid.update()
+            self._safe_update(albums_grid)
         except Exception as err:
             print(f'Error loading more albums: {err}')
         finally:
@@ -565,5 +574,5 @@ class AlbumsView(Container):
             # Incrementally handle folder addition
             self._handle_folder_addition()
 
-        if self.page:
-            self.update()
+        self._safe_update()
+

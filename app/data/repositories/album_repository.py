@@ -6,8 +6,9 @@ from typing import List, Optional
 from app.core.models import Album
 from app.data.datastore import Datastore
 from app.data.cache_manager import CacheManager
-from app.utils.helpers import sort_list_by
+from app.services.metadata_service import MetadataService
 from app.data.repositories.music_repository import MusicRepository
+from app.utils.helpers import sort_list_by
 
 
 class AlbumRepository:
@@ -27,8 +28,10 @@ class AlbumRepository:
             'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
             'name': 'TEXT',
             'artist': 'TEXT',
-            'cover': 'TEXT',
             'year': 'INTEGER',
+            'genre': 'TEXT',
+            'cover': 'TEXT',
+            'tracks': 'TEXT'
         })
 
     def _load_all_albums(self, use_cache=True) -> List[Album]:
@@ -53,10 +56,13 @@ class AlbumRepository:
 
                 key = f"{music.album}:{music.album_artist}"
                 if key not in albums_dict:
+                    album_cover = MetadataService.load_music_cover(music.filename)
                     albums_dict[key] = Album(
                         name=music.album,
                         artist=music.album_artist,
-                        year=music.year
+                        year=music.year,
+                        genre=music.genre,
+                        cover=album_cover,
                     )
                 albums_dict[key].tracks.append(music)
 
@@ -82,43 +88,6 @@ class AlbumRepository:
 
         albums = self._cache_manager.get(lambda: self._load_all_albums(use_cache=use_cache))
         return sort_list_by(key=sort_by, list=albums.copy() if albums else [])
-
-    def get_album_by_name_and_artist(self, name: str, artist: str) -> Optional[Album]:
-        """
-        Get an album by name and artist
-
-        Args:
-            name (str): The album name
-            artist (str): The artist name
-
-        Returns:
-            Optional[Album]: The album or None if not found
-        """
-        try:
-            # First check cache if valid
-            if self._cache_manager.is_valid():
-                albums = self._cache_manager.get(lambda: [])
-                for album in albums:
-                    if album.name == name and album.artist == artist:
-                        return album
-
-            # Not found in cache or cache invalid, query from database
-            all_music = self.music_repository.get_all_music(sort_by='track_number')  # Sort by track number for proper ordering
-
-            tracks = [m for m in all_music if m.album == name and m.artist == artist]
-
-            if not tracks:
-                return None
-
-            return Album(
-                name=name,
-                artist=artist,
-                year=tracks[0].year if tracks else None,
-                tracks=tracks
-            )
-        except Exception as err:
-            print(f"Error getting album by name and artist: {err}")
-            return None
 
     def save_album_cover(self, album_name: str, artist: str, cover_path: str) -> bool:
         """

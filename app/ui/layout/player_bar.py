@@ -20,18 +20,17 @@ from flet import (
 )
 from flet_audio import AudioState
 
+from app.config.colors import AppColors
 from app.config.settings import (
     DEFAULT_PLACEHOLDER_IMAGE,
     DEFAULT_DURATION_TEXT,
     DEFAULT_PLAYER_HEIGHT
 )
-from app.config.colors import AppColors
 from app.core.models import Music
 from app.data.repositories import PlayerRepository, MusicRepository
 from app.services.audio_service import AudioService
 from app.services.metadata_service import MetadataService
 from app.utils.time_format import format_time
-from app.utils.image_utils import get_album_cover
 
 
 class PlayerBar(Container):
@@ -281,17 +280,33 @@ class PlayerBar(Container):
             except Exception as err:
                 print(f"Error initializing music info: {err}")
 
+    def _safe_update(self, control=None):
+        """
+        Safely update a control or self, catching any AssertionErrors
+
+        Args:
+            control: The control to update, if None updates self
+        """
+        try:
+            if control is None:
+                self.update()
+            else:
+                control.update()
+        except AssertionError:
+            # Skip update if component is not fully initialized
+            pass
+
     def _update_play_button(self, is_play: bool):
         """Update the play/pause button state"""
         self._is_playing = is_play
         self.button_play.visible = not is_play
         self.button_pause.visible = is_play
-        self.update()
+        self._safe_update()
 
     def _update_current_time(self, position: int):
         """Update the current time display"""
         self.current_time.value = format_time(position)
-        self.update()
+        self._safe_update()
 
     def _update_end_time(self, position: int, duration: int):
         """Update the end time display"""
@@ -301,11 +316,11 @@ class PlayerBar(Container):
             else:
                 new_time = duration - position
                 self.end_time.value = format_time(new_time)
-            self.update()
+            self._safe_update()
         except Exception as err:
             print(f'Error updating end time: {err}')
             self.end_time.value = DEFAULT_DURATION_TEXT
-            self.update()
+            self._safe_update()
 
     def _update_progress_time(self, current_position: int, end_position: int):
         """Update the progress slider"""
@@ -313,7 +328,7 @@ class PlayerBar(Container):
             self.progress_time.value = current_position
             if end_position is not None and end_position > 0:
                 self.progress_time.max = end_position
-            self.update()
+            self._safe_update()
         except Exception as err:
             print(f'Error updating progress time: {err}')
 
@@ -325,30 +340,25 @@ class PlayerBar(Container):
         self.current_time.value = DEFAULT_DURATION_TEXT
         self.progress_time.value = 0
         self._update_music_cover(music.filename)
-        self.page.update()
+        self._safe_update(self.page)
 
     def _update_music_cover(self, filename: str):
         """Update the music cover image"""
         try:
-            metadata = MetadataService.load_music_metadata(file=filename, with_image=True)
-            cover = get_album_cover(metadata)
-            if cover:
-                self.music_cover.src_base64 = cover
-            else:
-                self.music_cover.src_base64 = None
-                self.music_cover.src = DEFAULT_PLACEHOLDER_IMAGE
-            self.update()
+            cover = MetadataService.load_music_cover(filename)
+            self.music_cover.src_base64 = cover
+            self._safe_update()
         except Exception as err:
             print(f'Error updating music cover: {err}')
             self.music_cover.src = DEFAULT_PLACEHOLDER_IMAGE
-            self.update()
+            self._safe_update()
 
     def _update_shuffle_state(self):
         """Update the shuffle button state"""
         self._is_shuffle = self.audio_service.toggle_shuffle()
         self.button_shuffle.icon_color = AppColors.PRIMARY if self._is_shuffle else AppColors.GREY_LIGHT_100
         self.button_shuffle.tooltip = 'Embaralhar: ' + ('Ativado' if self._is_shuffle else 'Desativado')
-        self.button_shuffle.update()
+        self._safe_update(self.button_shuffle)
 
     def _update_repeat_state(self):
         """Update the repeat button state"""
@@ -367,7 +377,7 @@ class PlayerBar(Container):
             self.button_repeat.tooltip = 'Repetir: Desativado'
             self.button_repeat.icon_color = AppColors.GREY_LIGHT_100
 
-        self.button_repeat.update()
+        self._safe_update(self.button_repeat)
 
     def _get_volume_icon(self, volume: float, is_muted: bool):
         """Get the volume icon based on volume level and mute state"""
@@ -383,7 +393,7 @@ class PlayerBar(Container):
         self._is_muted = self.audio_service.toggle_mute()
         self.button_volume.icon = self._get_volume_icon(self._volume, self._is_muted)
         self.volume_slider.value = 0 if self._is_muted else self._volume
-        self.update()
+        self._safe_update()
 
     def _set_volume(self, new_volume: float):
         """Set the volume level"""
@@ -391,7 +401,7 @@ class PlayerBar(Container):
         self._is_muted = new_volume == 0
         self.audio_service.set_volume(new_volume)
         self.button_volume.icon = self._get_volume_icon(new_volume, self._is_muted)
-        self.page.update()
+        self._safe_update(self.page)
 
     def on_position_changed(self, position, duration):
         """Handle audio position change events"""

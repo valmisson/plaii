@@ -18,8 +18,8 @@ from flet import (
 )
 from typing import Callable
 
-from app.config.settings import APP_NAME
 from app.config.colors import AppColors
+from app.config.settings import APP_NAME
 from app.services.audio_service import AudioService
 
 

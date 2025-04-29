@@ -311,6 +311,7 @@ class SettingsView(AlertDialog):
         self.page.pubsub.send_all_on_topic('settings:folder:player', status)
         self.page.pubsub.send_all_on_topic('settings:folder:musics', status)
         self.page.pubsub.send_all_on_topic('settings:folder:albums', status)
+        self.page.pubsub.send_all_on_topic('settings:folder:album', status)
 
     def on_remove_folder(self, folder: Folder):
         """Handle removal of a music folder"""

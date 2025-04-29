@@ -2,6 +2,7 @@
 Main application window and UI initialization
 """
 from flet import (
+    Column,
     Container,
     ControlEvent,
     Page,
@@ -22,6 +23,7 @@ from app.ui.layout.navigation import NavigationBar
 from app.ui.layout.bottom_bar import BottomBar
 from app.ui.views.musics_view import MusicsView
 from app.ui.views.albums_view import AlbumsView
+from app.ui.views.album_view import AlbumView
 from app.ui.views.settings_view import SettingsView
 
 
@@ -66,6 +68,11 @@ class AppWindow:
         self.audio_service = AudioService(self.page)
         self.notify_service = NotifyService(self.page)
 
+        self.page.pubsub.subscribe_topic(
+            'navigation:album',
+            self.on_navigation_album_subscribe
+        )
+
     def initialize_ui(self):
         """Initialize the UI components"""
         # Set up app bar (top)
@@ -81,12 +88,14 @@ class AppWindow:
             notify_service=self.notify_service,
         )
 
+        # Create main navigation bar
+        self.navigation_bar = NavigationBar(on_change=self.on_navbar_change)
+
         # Create main content container
         self.views_container = Container()
 
         # Add navigation bar and views container to page
         self.page.add(
-            NavigationBar(on_change=self.on_navbar_change),
             self.views_container
         )
 
@@ -102,7 +111,7 @@ class AppWindow:
 
         self.page.update()
 
-    def add_view(self, index_view: int):
+    def add_view(self, index_view: int, data=None):
         """
         Switch to the specified view
 
@@ -112,14 +121,30 @@ class AppWindow:
         self.views_container.content = None
 
         if index_view == 0:
-            self.views_container.content = MusicsView(
-                page=self.page,
-                audio_service=self.audio_service
+            self.views_container.content = Column(
+                controls=[
+                    self.navigation_bar,
+                    MusicsView(
+                        page=self.page,
+                        audio_service=self.audio_service
+                    )
+                ]
             )
         elif index_view == 1:
-            self.views_container.content = AlbumsView(
+            self.views_container.content = Column(
+                controls=[
+                    self.navigation_bar,
+                    AlbumsView(
+                        page=self.page,
+                        audio_service=self.audio_service
+                    )
+                ]
+            )
+        elif index_view == 2:
+            self.views_container.content = AlbumView(
                 page=self.page,
-                audio_service=self.audio_service
+                audio_service=self.audio_service,
+                album=data
             )
 
         self.views_container.update()
@@ -146,3 +171,14 @@ class AppWindow:
             _: Control event
         """
         self.page.open(self.settings_view)
+
+    def on_navigation_album_subscribe(self, _, data):
+        """
+        Handle album navigation subscription
+
+        Args:
+            _: Control event
+            data: Data from the event
+        """
+        index_view = data.get('index_view')
+        self.add_view(index_view, data.get('album'))
