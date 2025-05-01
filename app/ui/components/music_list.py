@@ -26,6 +26,7 @@ from app.config.colors import AppColors
 from app.core.models import Music
 from app.data.repositories import MusicRepository, PlayerRepository
 from app.services.audio_service import AudioService
+from app.utils.helpers import safe_update
 
 
 class MusicListComponent(Container):
@@ -57,8 +58,7 @@ class MusicListComponent(Container):
         self.content = self._build()
 
         # Subscribe to events
-        self.page.pubsub.subscribe_topic('play:music', self.on_play_music_subscribe)
-        self.page.pubsub.subscribe_topic('settings:folder:musics', self.on_settings_folder_subscribe)
+        self._register_callbacks()
 
     def _build(self):
         """Build the view"""
@@ -73,6 +73,13 @@ class MusicListComponent(Container):
             ],
             on_scroll=self.on_scroll_change,
         )
+
+    def _register_callbacks(self):
+        """
+        Register the component to listen to events
+        """
+        if self.page:
+            self.page.pubsub.subscribe_topic('play:music', self.on_play_music_subscribe)
 
     def _load_musics(self, start=0, limit=None) -> List[Music]:
         """
@@ -206,74 +213,17 @@ class MusicListComponent(Container):
                 list_tile.leading.icon = Icons.INSERT_CHART_OUTLINED
                 list_tile.leading.icon_color = AppColors.PRIMARY
 
-        self.update()
-
-    def _handle_folder_addition(self, folder_path: str):
-        """
-        Handle addition of a folder by incrementally updating the UI
-
-        Args:
-            folder_path (str): Path of the added folder
-        """
-        # Refresh our internal music list with fresh data from repository
-        self.musics = self.music_repository.get_all_music(use_cache=False)
-
-        # Reset pagination state
-        self._current_page = 0
-        self._is_loading_more = False
-
-        # Direct access to the ListView
-        list_view = self.content
-
-        # Find the new music files from this folder
-        new_music = [music for music in self.musics if music.filename.startswith(folder_path)]
-
-        if new_music:
-            # Clear the current controls and repopulate
-            list_view.controls = [
-                self._build_music_row(music)
-                for music in self._load_musics(limit=self._musics_per_page)
-            ]
-
-    def _handle_folder_removal(self, folder_path: str):
-        """
-        Handle removal of a folder by incrementally updating the UI
-
-        Args:
-            folder_path (str): Path of the removed folder
-        """
-        # First update our internal music list
-        self.musics = self.music_repository.get_all_music(use_cache=False)
-
-        # Reset pagination state
-        self._current_page = 0
-        self._is_loading_more = False
-
-        # Direct access to the ListView
-        list_view = self.content
-
-        # Remove items from the list view that belong to this folder
-        list_view.controls = [
-            item for item in list_view.controls
-            if not (hasattr(item, 'key') and item.key.startswith(folder_path))
-        ]
-
-        # If visible list is empty, reload the first page
-        if not list_view.controls and self.musics:
-            list_view.controls = [
-                self._build_music_row(music)
-                for music in self._load_musics(limit=self._musics_per_page)
-            ]
+        safe_update(self)
 
     def on_hover_music_row(self, is_visible: bool, play_button: IconButton, music_row_tile: ListTile):
         if music_row_tile.content.selected:
             play_button.icon = Icons.PLAY_ARROW if is_visible else Icons.INSERT_CHART_OUTLINED
-            play_button.update()
+            safe_update(play_button)
             return
 
         play_button.icon = Icons.PLAY_ARROW
         play_button.icon_color = AppColors.WHITE if is_visible else AppColors.BLACK
-        play_button.update()
+        safe_update(play_button)
 
     def on_scroll_change(self, event: OnScrollEvent):
         """
@@ -321,7 +271,7 @@ class MusicListComponent(Container):
 
             # Batch update the ListView with all new items at once
             list_view.controls.extend(new_items)
-            list_view.update()
+            safe_update(list_view)
         except Exception as err:
             print(f'Error loading more music: {err}')
         finally:
@@ -359,24 +309,3 @@ class MusicListComponent(Container):
 
             # Update the view to reflect state changes
             self._update_music_selected(current_music)
-
-    def on_settings_folder_subscribe(self, _, data: dict):
-        """
-        Handle changes in the settings folder state
-
-        Args:
-            _ (str): The subscription topic name
-            data: Event data with folder path
-        """
-        state = data.get('state')
-        folder_path = data.get('folder_path')
-
-        if state == 'remove':
-            # Incrementally remove music files from the specified folder
-            self._handle_folder_removal(folder_path)
-        elif state == 'new':
-            # Incrementally add music files from the specified folder
-            self._handle_folder_addition(folder_path)
-
-        if self.page:
-            self.update()

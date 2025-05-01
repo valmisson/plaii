@@ -29,6 +29,7 @@ from app.core.models import Folder
 from app.data.repositories import FolderRepository, MusicRepository, PlayerRepository
 from app.services.metadata_service import MetadataService
 from app.services.notify_service import NotifyService
+from app.utils.helpers import safe_update
 
 
 class SettingsView(AlertDialog):
@@ -263,8 +264,8 @@ class SettingsView(AlertDialog):
             )
 
         # Update the UI
-        self.update()
         folder_list.auto_scroll = False
+        safe_update(self)
 
     def _update_folder_list_after_removal(self, folder_path: str):
         """
@@ -296,22 +297,33 @@ class SettingsView(AlertDialog):
                     color=AppColors.GREY_LIGHT_200
                 )
 
-            self.update()
+            safe_update(self)
 
     def _send_settings_topic(self, state: str, folder_path: str):
         """
-        Notify all view about settings:folder update
+        Notify all components about folder changes via pubsub
+
+        This method broadcasts folder changes (additions or removals) to all
+        relevant components in the application through the pubsub system.
 
         Args:
-            state (str): State of the folder (new, remove)
-            folder_path (str): Path of the folder
+            state (str): State of the folder ('new' or 'remove')
+            folder_path (str): Path of the folder being added or removed
         """
+        # Create status message payload once
         status = {'state': state, 'folder_path': folder_path}
 
-        self.page.pubsub.send_all_on_topic('settings:folder:player', status)
-        self.page.pubsub.send_all_on_topic('settings:folder:musics', status)
-        self.page.pubsub.send_all_on_topic('settings:folder:albums', status)
-        self.page.pubsub.send_all_on_topic('settings:folder:album', status)
+        # Define all topics that need to be notified about folder changes
+        topics = [
+            'settings:folder:player',
+            'settings:folder:musics',
+            'settings:folder:albums',
+            'settings:folder:album',
+        ]
+
+        # Send to all topics in a single loop
+        for topic in topics:
+            self.page.pubsub.send_all_on_topic(topic, status)
 
     def on_remove_folder(self, folder: Folder):
         """Handle removal of a music folder"""
@@ -407,4 +419,4 @@ class SettingsView(AlertDialog):
     def on_dialog_close(self):
         """Handle dialog close event"""
         self.page.close(self)
-        self.update()
+        safe_update(self)

@@ -19,6 +19,7 @@ from app.core.models import Music
 from app.data.repositories import MusicRepository
 from app.services.audio_service import AudioService
 from app.ui.components.music_list import MusicListComponent
+from app.utils.helpers import safe_update
 
 
 class MusicsView(Container):
@@ -46,10 +47,12 @@ class MusicsView(Container):
         self.expand = True
         self.content = self._build()
 
+        # Subscribe to events
+        self.page.pubsub.subscribe_topic('settings:folder:musics', self.on_settings_folder_subscribe)
+
     def _build(self):
         """Build the view"""
         self.musics = self.music_repository.get_all_music()
-        self._loading = False
 
         return self._build_music_list() if self.musics else self._build_empty_state()
 
@@ -97,4 +100,35 @@ class MusicsView(Container):
             )
         )
 
+    def _handle_folder_addition(self):
+        """Handle addition of a folder by refreshing the music list"""
+        self.musics = self.music_repository.get_all_music(use_cache=False)
 
+        # Rebuild the view with the updated music list
+        self.content = self._build()
+        safe_update(self)
+
+    def _handle_folder_removal(self):
+        """Handle removal of a folder by refreshing the music list"""
+        self.musics = self.music_repository.get_all_music(use_cache=False)
+
+        if not self.musics:
+            # If no music is available, show the empty state
+            self.content = self._build_empty_state()
+        else:
+            # If music is available, show the music list
+            self.content = self._build_music_list()
+
+        # Rebuild the view with the updated music list
+        safe_update(self)
+
+    def on_settings_folder_subscribe(self, _, data: dict):
+        """Handle the event when the music folder is updated"""
+        state = data.get('state')
+
+        if state == 'remove':
+            # Handle removal of a folder
+            self._handle_folder_removal()
+        elif state == 'new':
+            # Handle addition of a folder
+            self._handle_folder_addition()

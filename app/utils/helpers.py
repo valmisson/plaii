@@ -1,6 +1,6 @@
 from app.core.models import Album, Music
 from re import match
-from typing import List
+from typing import List, Optional, Any
 from unicodedata import combining, normalize
 
 def normalize_str(value: str) -> str:
@@ -45,3 +45,19 @@ def sort_list_by(key: str, list: List[Album|Music], reverse=False) -> List[Album
 
     # Sort the list using the custom sort key
     return sorted(list, key=lambda x: sort_key(normalize_str(getattr(x, key, ""))), reverse=reverse)
+
+def safe_update(control: Optional[Any] = None):
+    """
+    Safely update a control, catching any AssertionErrors
+
+    Args:
+        control: The control to update, if None the function does nothing
+    """
+    if control is None:
+        return
+
+    try:
+        control.update()
+    except AssertionError:
+        # Skip update if component is not fully initialized
+        pass

@@ -81,6 +81,7 @@ class AlbumView(Container):
         album_detail_tracks = f" • {track_count} {'música' if track_count == 1 else 'músicas'}"
 
         return Container(
+            height=110,
             padding=padding.symmetric(horizontal=20),
             content=Row(
                 spacing=25,

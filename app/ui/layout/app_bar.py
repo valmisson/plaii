@@ -3,6 +3,7 @@ Application top bar component
 """
 from flet import (
     Container,
+    CrossAxisAlignment,
     ButtonStyle,
     Icon,
     Icons,
@@ -11,6 +12,7 @@ from flet import (
     MouseCursor,
     padding,
     Page,
+    ResponsiveRow,
     Row,
     RoundedRectangleBorder,
     Text,
@@ -21,6 +23,7 @@ from typing import Callable
 from app.config.colors import AppColors
 from app.config.settings import APP_NAME
 from app.services.audio_service import AudioService
+from app.utils.helpers import safe_update
 
 
 class AppBar(Container):
@@ -54,22 +57,29 @@ class AppBar(Container):
 
     def _create_app_bar(self):
         """Build the application top bar"""
-        return Row(
+        return ResponsiveRow(
             alignment=MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=CrossAxisAlignment.CENTER,
             controls=[
-                IconButton(
-                    icon=Icons.MORE_HORIZ,
-                    icon_size=24,
-                    icon_color=AppColors.WHITE,
-                    highlight_color=AppColors.TRANSPARENT,
-                    hover_color=AppColors.TRANSPARENT,
-                    width=35,
-                    tooltip="Configurações",
-                    on_click=self.on_settings
+                Row(
+                    col=4,
+                    controls=[
+                        IconButton(
+                            icon=Icons.MORE_HORIZ,
+                            icon_size=24,
+                            icon_color=AppColors.WHITE,
+                            highlight_color=AppColors.TRANSPARENT,
+                            hover_color=AppColors.TRANSPARENT,
+                            width=35,
+                            tooltip="Configurações",
+                            on_click=self.on_settings
+                        ),
+                    ]
                 ),
                 Row(
+                    col=4,
                     spacing=5,
-                    alignment=MainAxisAlignment.START,
+                    alignment=MainAxisAlignment.CENTER,
                     controls=[
                         Icon(
                             Icons.MUSIC_NOTE_OUTLINED,
@@ -84,7 +94,9 @@ class AppBar(Container):
                     ]
                 ),
                 Row(
+                    col=4,
                     spacing=0,
+                    alignment=MainAxisAlignment.END,
                     controls=[
                         IconButton(
                             icon=Icons.REMOVE,
@@ -131,7 +143,7 @@ class AppBar(Container):
 
         # Minimize the window
         self.page.window.minimized = True
-        self.page.update()
+        safe_update(self.page)
 
     def on_close(self, _):
         """

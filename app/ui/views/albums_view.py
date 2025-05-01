@@ -32,6 +32,7 @@ from app.config.settings import DEFAULT_VIEW_HEIGHT
 from app.core.models import Album
 from app.data.repositories import AlbumRepository, PlayerRepository
 from app.services.audio_service import AudioService
+from app.utils.helpers import safe_update
 
 
 class AlbumsView(Container):
@@ -257,22 +258,6 @@ class AlbumsView(Container):
             )
         )
 
-    def _safe_update(self, control=None):
-        """
-        Safely update a control or self, catching any AssertionErrors
-
-        Args:
-            control: The control to update, if None updates self
-        """
-        try:
-            if control is None:
-                self.update()
-            else:
-                control.update()
-        except AssertionError:
-            # Skip update if component is not fully initialized
-            pass
-
     def _update_album_play_button(self, current_album: str, is_playing=False):
         """
         Update the play button state for the album
@@ -295,7 +280,7 @@ class AlbumsView(Container):
                     play_button.visible = False
                     play_button.icon = Icons.PLAY_ARROW
                     play_button.tooltip = "Reproduzir"
-                    self._safe_update(play_button)
+                    safe_update(play_button)
                 except (IndexError, AttributeError):
                     pass
 
@@ -310,7 +295,7 @@ class AlbumsView(Container):
                     play_button.icon = Icons.PAUSE if is_playing else Icons.PLAY_ARROW
                     play_button.tooltip = "Pausar" if is_playing else "Reproduzir"
                     play_button.visible = True if self._is_hovered else is_playing
-                    self._safe_update(play_button)
+                    safe_update(play_button)
                 except (IndexError, AttributeError):
                     pass
 
@@ -439,7 +424,7 @@ class AlbumsView(Container):
         # Otherwise, just append to the existing queue
         player_state.playlist.extend(tracks_to_add)
         self.audio_service.player_repository.update_player_state(player_state)
-        self._safe_update(self.page)
+        safe_update(self.page)
 
     def on_goto_album(self, album: Album):
         """
@@ -484,7 +469,7 @@ class AlbumsView(Container):
         )
 
         self._is_hovered = is_visible
-        self._safe_update()
+        safe_update(self)
 
     def on_album_grid_scroll(self, event: OnScrollEvent):
         """
@@ -538,7 +523,7 @@ class AlbumsView(Container):
 
             # Batch update the Row with all new items at once
             albums_grid.controls.extend(new_items)
-            self._safe_update(albums_grid)
+            safe_update(albums_grid)
         except Exception as err:
             print(f'Error loading more albums: {err}')
         finally:
@@ -574,5 +559,5 @@ class AlbumsView(Container):
             # Incrementally handle folder addition
             self._handle_folder_addition()
 
-        self._safe_update()
+        safe_update(self)
 
