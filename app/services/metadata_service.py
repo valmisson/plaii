@@ -13,7 +13,7 @@ from app.config.settings import (
     DEFAULT_PLACEHOLDER_IMAGE,
     DEFAULT_BATCH_SIZE
 )
-from app.core.models import Music
+from app.core.models import Music, Album
 from app.utils.time_format import format_time
 from app.utils.image_utils import image_to_base64
 
@@ -85,9 +85,14 @@ class MetadataService:
             bytes: Album cover image data
         """
         try:
-            tag = TinyTag.get(file, image=True)
-            image = tag.images.front_cover.data if tag.images.front_cover else open(DEFAULT_PLACEHOLDER_IMAGE, 'rb').read()
-            return image_to_base64(image)
+            # Reuse existing load_music_metadata method with image loading enabled
+            metadata = MetadataService.load_music_metadata(file, with_image=True)
+            if 'image' in metadata:
+                return image_to_base64(metadata['image'])
+            else:
+                # Fallback to default image
+                image = open(DEFAULT_PLACEHOLDER_IMAGE, 'rb').read()
+                return image_to_base64(image)
         except Exception as err:
             print(f"Error loading cover for {file}: {err}")
             image = open(DEFAULT_PLACEHOLDER_IMAGE, 'rb').read()
@@ -97,20 +102,24 @@ class MetadataService:
     async def scan_folder_async(
         folder_path: str,
         batch_size = DEFAULT_BATCH_SIZE,
-        process_callback: Optional[Callable[[List[Music]], None]] = None
-    ) -> List[Music]:
+        process_callback: Optional[Callable[[List[Music], List[Album]], None]] = None
+    ) -> tuple[List[Music], List[Album]]:
         """
         Scan a folder for music files asynchronously and extract metadata
 
         Args:
             folder_path (str): Path to the folder to scan
+            batch_size (int): Number of files to process in each batch
+            process_callback (Optional[Callable]): Optional callback for incremental processing
 
         Returns:
-            List[Music]: List of Music objects found in the folder
+            tuple[List[Music], List[Album]]: Tuple containing list of Music objects and list of Album objects
         """
         supported_extensions = ['.mp3', '.ogg', '.flac', '.wav', '.m4a']
         music_files = []
         file_paths = []
+        # Dictionary to store albums by album:artist key
+        albums_dict = {}
 
         try:
             # Get all files in the folder and its subfolders in parallel
@@ -141,6 +150,9 @@ class MetadataService:
                     results = await asyncio.gather(*batch_tasks)
 
                     batch_musics = []
+                    # Track albums updated in this batch
+                    albums_updated_in_batch = set()
+
                     for metadata in results:
                         music = Music(
                             title=metadata['title'],
@@ -157,28 +169,54 @@ class MetadataService:
                         music_files.append(music)
                         batch_musics.append(music)
 
-                    if process_callback:
-                        process_callback(batch_musics)
+                        # Skip tracks without album info
+                        if not music.album:
+                            continue
+
+                        # Group by album
+                        album_key = f"{music.album}:{music.album_artist}"
+                        if album_key not in albums_dict:
+                            album_cover = MetadataService.load_music_cover(music.filename)
+                            albums_dict[album_key] = Album(
+                                name=music.album,
+                                artist=music.album_artist,
+                                year=music.year,
+                                genre=music.genre,
+                                cover=album_cover,
+                            )
+
+                        # Add the music to the album's tracks
+                        albums_dict[album_key].tracks.append(music)
+                        # Mark this album as updated in this batch
+                        albums_updated_in_batch.add(album_key)
+
+                    # Include all albums updated in this batch in the callback
+                    batch_albums = [albums_dict[key] for key in albums_updated_in_batch]
+
+                    if process_callback and batch_musics:
+                        process_callback(batch_musics, batch_albums)
 
         except Exception as err:
             print(f"Error scanning folder {folder_path}: {err}")
 
-        return music_files
+        return music_files, list(albums_dict.values())
 
     @staticmethod
     def scan_folder(
         folder_path: str,
         batch_size = DEFAULT_BATCH_SIZE,
-        process_callback: Optional[Callable[[List[Music]], None]] = None
-    ) -> List[Music]:
+        process_callback: Optional[Callable[[List[Music], List[Album]], None]] = None
+    ) -> tuple[List[Music], List[Album]]:
         """
-        Scan a folder for music files and extract metadata (versão síncrona)
+        Scan a folder for music files and extract metadata
 
         Args:
             folder_path (str): Path to the folder to scan
+            batch_size (int): Number of files to process in each batch
+            process_callback (Optional[Callable]): Optional callback for incremental processing
 
         Returns:
-            List[Music]: List of Music objects found in the folder
+            tuple[List[Music], List[Album]]: Tuple containing list of Music objects and list of Album objects
         """
         loop = asyncio.new_event_loop()
         try:

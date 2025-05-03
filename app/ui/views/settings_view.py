@@ -26,7 +26,7 @@ from flet import (
 from app.config.colors import AppColors
 from app.config.settings import DEFAULT_BATCH_SIZE
 from app.core.models import Folder
-from app.data.repositories import FolderRepository, MusicRepository, PlayerRepository
+from app.data.repositories import AlbumRepository, FolderRepository, MusicRepository, PlayerRepository
 from app.services.metadata_service import MetadataService
 from app.services.notify_service import NotifyService
 from app.utils.helpers import safe_update
@@ -46,6 +46,7 @@ class SettingsView(AlertDialog):
         self.notify_service = notify_service
         self.folder_repository = FolderRepository()
         self.music_repository = MusicRepository()
+        self.album_repository = AlbumRepository()
         self.player_repository = PlayerRepository()
 
         # Create the view
@@ -342,13 +343,23 @@ class SettingsView(AlertDialog):
                 music_filenames = [music.filename for music in folder_music]
                 total_tracks = len(music_filenames)
 
-                # Process in batches of DEFAULT_BATCH_SIZE
+                # Process music deletion in batches
                 for i in range(0, total_tracks, DEFAULT_BATCH_SIZE):
-                    batch = music_filenames[i:i + DEFAULT_BATCH_SIZE]
-                    self.music_repository.batch_delete_music(batch)
+                    music_batch = music_filenames[i:i + DEFAULT_BATCH_SIZE]
+                    self.music_repository.batch_delete_music(music_batch)
 
-                    # Send notification about progress only after each batch
-                    self._send_settings_topic('remove', folder.path)
+                # Get all unique album IDs from the music in this folder for batch deletion
+                album_names = [music.album for music in folder_music if music.album]
+                total_albums = len(album_names)
+
+                # Process album deletion in batches if there are any albums
+                if album_names:
+                    for i in range(0, total_albums, DEFAULT_BATCH_SIZE):
+                        album_batch = album_names[i:i + DEFAULT_BATCH_SIZE]
+                        self.album_repository.batch_delete_albums(album_batch)
+
+                # Send notification about progress
+                self._send_settings_topic('remove', folder.path)
 
             self.folder_repository.delete_folder(folder.path)
             self.player_repository.invalidate_cache()
@@ -375,26 +386,26 @@ class SettingsView(AlertDialog):
             folder_name = MetadataService.extract_folder_name(folder_path)
             folder_exists = self.folder_repository.folder_exists(folder_path)
 
-            def process_callback(music_files):
+            def process_callback(music_files, album_files):
                 if not music_files:
                     return
 
-                # Get all existing filenames in a single database query for efficiency
-                existing_filenames = set()
-
-                # Use the new cache manager API instead of the old direct caching
+                # Process music files - save only new ones
                 all_files = self.music_repository.get_all_music(use_cache=True)
                 existing_filenames = {music.filename for music in all_files}
 
-                # Filter new files using the set for O(1) lookups
+                # Filter new files using set for O(1) lookups
                 new_music_files = [music for music in music_files
-                                if music.filename not in existing_filenames]
+                                  if music.filename not in existing_filenames]
 
-                # Use batch save instead of individual saves
+                # Save new music files and albums in batches
                 if new_music_files:
                     self.music_repository.batch_save_music(new_music_files)
 
-                # Notify music view about new folder addition
+                if album_files:
+                    self.album_repository.batch_save_albums(album_files)
+
+                # Notify views about new content
                 self._send_settings_topic('new', folder_path)
 
             if not folder_exists:
@@ -408,7 +419,7 @@ class SettingsView(AlertDialog):
                 # Show notification while processing
                 self.notify_service.show()
 
-                # Scan the folder for music tracks
+                # Scan the folder for music tracks and albums
                 MetadataService.scan_folder(folder_path, process_callback=process_callback)
         except Exception as e:
             print(f"Error scanning folder: {e}")
